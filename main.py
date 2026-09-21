@@ -8,7 +8,7 @@ import pygame
 pygame.init()
 
 screen = pygame.display.set_mode(
-    (800, 700),
+    (900, 760),
     pygame.RESIZABLE
 )
 
@@ -21,14 +21,42 @@ clock = pygame.time.Clock()
 # 2. 字体
 # =========================================================
 
-title_font = pygame.font.Font(None, 80)
-big_font = pygame.font.Font(None, 60)
-info_font = pygame.font.Font(None, 32)
+title_font = pygame.font.Font(None, 86)
+big_font = pygame.font.Font(None, 62)
+info_font = pygame.font.Font(None, 30)
+small_font = pygame.font.Font(None, 24)
 button_font = pygame.font.Font(None, 34)
 
 
 # =========================================================
-# 3. 棋盘参数
+# 3. 颜色
+# =========================================================
+
+BACKGROUND = (241, 244, 249)
+
+CARD_BG = (255, 255, 255)
+
+TEXT_MAIN = (35, 40, 50)
+TEXT_SECONDARY = (100, 108, 120)
+
+GRID_COLOR = (214, 219, 228)
+
+BUTTON_BG = (245, 247, 252)
+BUTTON_HOVER = (226, 232, 243)
+BUTTON_BORDER = (125, 135, 150)
+
+RED = (220, 65, 65)
+GREEN = (50, 165, 105)
+BLUE = (70, 120, 220)
+ORANGE = (235, 145, 60)
+PURPLE = (150, 95, 205)
+TEAL = (45, 165, 170)
+
+OVERLAY_COLOR = (20, 25, 35, 120)
+
+
+# =========================================================
+# 4. 棋盘参数
 # =========================================================
 
 ROWS = 5
@@ -37,31 +65,31 @@ COLS = 5
 CELL_SIZE = 80
 
 BOARD_X = 200
-BOARD_Y = 100
+BOARD_Y = 160
 
-MAX_CELL_SIZE = 110
+MAX_CELL_SIZE = 105
 
 
 # =========================================================
-# 4. 游戏基础参数
+# 5. 游戏参数
 # =========================================================
 
 MAX_MISTAKES = 3
 
 mistakes_left = MAX_MISTAKES
 
+current_level = 0
+
+game_state = "start"
+
 
 # =========================================================
-# 5. 三个关卡
+# 6. 三个关卡
 # =========================================================
 
 LEVELS = [
 
-    # -----------------------------------------------------
     # Level 1
-    # 8 个箭头
-    # -----------------------------------------------------
-
     [
         {"row": 0, "col": 0, "direction": "right"},
         {"row": 0, "col": 3, "direction": "down"},
@@ -76,12 +104,7 @@ LEVELS = [
         {"row": 4, "col": 4, "direction": "left"}
     ],
 
-
-    # -----------------------------------------------------
     # Level 2
-    # 12 个箭头
-    # -----------------------------------------------------
-
     [
         {"row": 4, "col": 4, "direction": "right"},
         {"row": 2, "col": 4, "direction": "right"},
@@ -104,12 +127,7 @@ LEVELS = [
         {"row": 4, "col": 1, "direction": "left"}
     ],
 
-
-    # -----------------------------------------------------
     # Level 3
-    # 16 个箭头
-    # -----------------------------------------------------
-
     [
         {"row": 4, "col": 4, "direction": "right"},
         {"row": 1, "col": 3, "direction": "right"},
@@ -139,36 +157,11 @@ LEVELS = [
 ]
 
 
-# =========================================================
-# 6. 当前关卡
-# =========================================================
-
-# Python 从 0 开始计数
-# 0 = 第一关
-# 1 = 第二关
-# 2 = 第三关
-
-current_level = 0
-
-# 当前关卡真正使用的箭头
 arrows = []
 
 
 # =========================================================
-# 7. 游戏状态
-# =========================================================
-
-# start
-# playing
-# game_over
-# level_complete
-# all_clear
-
-game_state = "start"
-
-
-# =========================================================
-# 8. 动画数据
+# 7. 动画数据
 # =========================================================
 
 flying_arrow = None
@@ -184,7 +177,7 @@ collision_target_distance = 0
 
 
 # =========================================================
-# 9. 自适应布局
+# 8. 动态布局
 # =========================================================
 
 def update_layout():
@@ -195,9 +188,8 @@ def update_layout():
 
     window_width, window_height = screen.get_size()
 
-    # 给顶部信息栏和底部留一些空间
-    available_width = window_width - 120
-    available_height = window_height - 220
+    available_width = window_width - 160
+    available_height = window_height - 280
 
     cell_by_width = available_width // COLS
     cell_by_height = available_height // ROWS
@@ -208,33 +200,25 @@ def update_layout():
         MAX_CELL_SIZE
     )
 
-    # 防止窗口特别小时格子异常
     CELL_SIZE = max(
         CELL_SIZE,
-        25
+        28
     )
 
-    board_width = (
-        COLS * CELL_SIZE
-    )
+    board_width = COLS * CELL_SIZE
+    board_height = ROWS * CELL_SIZE
 
-    board_height = (
-        ROWS * CELL_SIZE
-    )
-
-    # 水平居中
     BOARD_X = (
         window_width - board_width
     ) // 2
 
-    # 垂直居中，并稍微向下
     BOARD_Y = (
         window_height - board_height
-    ) // 2 + 20
+    ) // 2 + 45
 
 
 # =========================================================
-# 10. 加载指定关卡
+# 9. 加载关卡
 # =========================================================
 
 def load_level(level_index):
@@ -250,27 +234,12 @@ def load_level(level_index):
     global collision_frame
     global collision_target_distance
 
-    # -----------------------------------------------------
-    # 复制当前关卡箭头
-    # -----------------------------------------------------
-
     arrows = [
-
         arrow.copy()
-
         for arrow in LEVELS[level_index]
     ]
 
-    # -----------------------------------------------------
-    # 恢复失误次数
-    # -----------------------------------------------------
-
     mistakes_left = MAX_MISTAKES
-
-
-    # -----------------------------------------------------
-    # 清除动画
-    # -----------------------------------------------------
 
     flying_arrow = None
 
@@ -279,11 +248,6 @@ def load_level(level_index):
 
     collision_frame = 0
     collision_target_distance = 0
-
-
-    # -----------------------------------------------------
-    # 回到游戏状态
-    # -----------------------------------------------------
 
     game_state = "playing"
 
@@ -294,25 +258,16 @@ def load_level(level_index):
     )
 
 
-# =========================================================
-# 11. 开始新游戏
-# =========================================================
-
 def start_new_game():
 
     global current_level
 
-    # 从第一关开始
     current_level = 0
 
     load_level(
         current_level
     )
 
-
-# =========================================================
-# 12. 重置当前关卡
-# =========================================================
 
 def restart_current_level():
 
@@ -325,15 +280,10 @@ def restart_current_level():
     )
 
 
-# =========================================================
-# 13. 进入下一关
-# =========================================================
-
 def go_to_next_level():
 
     global current_level
 
-    # 当前还不是最后一关
     if (
         current_level
         < len(LEVELS) - 1
@@ -347,61 +297,117 @@ def go_to_next_level():
 
 
 # =========================================================
-# 14. 绘制按钮
+# 10. UI 辅助函数
 # =========================================================
+
+def draw_shadow_rect(
+    rect,
+    radius=16,
+    shadow_offset=6
+):
+
+    shadow_rect = rect.copy()
+
+    shadow_rect.x += shadow_offset
+    shadow_rect.y += shadow_offset
+
+    pygame.draw.rect(
+        screen,
+        (215, 220, 230),
+        shadow_rect,
+        border_radius=radius
+    )
+
 
 def draw_button(
     rect,
-    text
+    text,
+    accent=False
 ):
 
     mouse_x, mouse_y = (
         pygame.mouse.get_pos()
     )
 
-    # 鼠标放到按钮上时改变颜色
-    if rect.collidepoint(
+    hovered = rect.collidepoint(
         mouse_x,
         mouse_y
-    ):
+    )
 
-        background_color = (
-            210,
-            215,
+    if accent:
+
+        if hovered:
+            background_color = (
+                62,
+                112,
+                210
+            )
+        else:
+            background_color = (
+                72,
+                125,
+                225
+            )
+
+        text_color = (
+            255,
+            255,
+            255
+        )
+
+        border_color = (
+            72,
+            125,
             225
         )
 
     else:
 
-        background_color = (
-            235,
-            238,
-            245
+        if hovered:
+            background_color = (
+                228,
+                233,
+                244
+            )
+        else:
+            background_color = (
+                245,
+                247,
+                252
+            )
+
+        text_color = (
+            45,
+            50,
+            60
         )
 
-    # 按钮背景
+        border_color = (
+            150,
+            160,
+            175
+        )
+
     pygame.draw.rect(
         screen,
         background_color,
         rect,
-        border_radius=10
+        border_radius=12
     )
 
-    # 按钮边框
     pygame.draw.rect(
         screen,
-        (70, 75, 85),
+        border_color,
         rect,
         2,
-        border_radius=10
+        border_radius=12
     )
 
-    # 按钮文字
     text_surface = (
         button_font.render(
             text,
             True,
-            (30, 30, 35)
+            text_color
         )
     )
 
@@ -417,8 +423,96 @@ def draw_button(
     )
 
 
+def draw_info_card(
+    rect,
+    title,
+    value,
+    accent_color
+):
+
+    draw_shadow_rect(
+        rect,
+        radius=14,
+        shadow_offset=4
+    )
+
+    pygame.draw.rect(
+        screen,
+        CARD_BG,
+        rect,
+        border_radius=14
+    )
+
+    accent_rect = pygame.Rect(
+        rect.x,
+        rect.y,
+        6,
+        rect.height
+    )
+
+    pygame.draw.rect(
+        screen,
+        accent_color,
+        accent_rect,
+        border_radius=6
+    )
+
+    title_surface = (
+        small_font.render(
+            title,
+            True,
+            TEXT_SECONDARY
+        )
+    )
+
+    value_surface = (
+        info_font.render(
+            value,
+            True,
+            TEXT_MAIN
+        )
+    )
+
+    screen.blit(
+        title_surface,
+        (
+            rect.x + 20,
+            rect.y + 12
+        )
+    )
+
+    screen.blit(
+        value_surface,
+        (
+            rect.x + 20,
+            rect.y + 34
+        )
+    )
+
+
 # =========================================================
-# 15. 绘制箭头
+# 11. 箭头颜色
+# =========================================================
+
+def get_arrow_color(direction):
+
+    if direction == "right":
+        return BLUE
+
+    if direction == "left":
+        return PURPLE
+
+    if direction == "up":
+        return TEAL
+
+    if direction == "down":
+        return ORANGE
+
+    return TEXT_MAIN
+
+
+# =========================================================
+# 12. 绘制箭头
 # =========================================================
 
 def draw_arrow(
@@ -428,8 +522,13 @@ def draw_arrow(
     direction,
     offset_x=0,
     offset_y=0,
-    color=(30, 30, 30)
+    color=None
 ):
+
+    if color is None:
+        color = get_arrow_color(
+            direction
+        )
 
     center_x = (
         BOARD_X
@@ -445,25 +544,19 @@ def draw_arrow(
         + offset_y
     )
 
-
-    # 箭头尺寸随格子大小变化
     body_length = int(
-        CELL_SIZE * 0.30
+        CELL_SIZE * 0.28
     )
 
     head_size = int(
-        CELL_SIZE * 0.12
+        CELL_SIZE * 0.13
     )
 
     line_width = max(
-        2,
-        int(CELL_SIZE * 0.05)
+        3,
+        int(CELL_SIZE * 0.055)
     )
 
-
-    # -----------------------------------------------------
-    # 向右
-    # -----------------------------------------------------
 
     if direction == "right":
 
@@ -508,10 +601,6 @@ def draw_arrow(
         )
 
 
-    # -----------------------------------------------------
-    # 向左
-    # -----------------------------------------------------
-
     elif direction == "left":
 
         start = (
@@ -555,10 +644,6 @@ def draw_arrow(
         )
 
 
-    # -----------------------------------------------------
-    # 向上
-    # -----------------------------------------------------
-
     elif direction == "up":
 
         start = (
@@ -601,10 +686,6 @@ def draw_arrow(
             line_width
         )
 
-
-    # -----------------------------------------------------
-    # 向下
-    # -----------------------------------------------------
 
     elif direction == "down":
 
@@ -650,7 +731,7 @@ def draw_arrow(
 
 
 # =========================================================
-# 16. 根据格子寻找箭头
+# 13. 查找箭头
 # =========================================================
 
 def find_arrow(
@@ -671,7 +752,7 @@ def find_arrow(
 
 
 # =========================================================
-# 17. 寻找最近阻挡箭头
+# 14. 查找最近阻挡箭头
 # =========================================================
 
 def find_blocker(
@@ -691,14 +772,9 @@ def find_blocker(
 
     for other in arrows:
 
-        # 不能自己挡自己
         if other is arrow:
             continue
 
-
-        # -------------------------------------------------
-        # 向右
-        # -------------------------------------------------
 
         if direction == "right":
 
@@ -716,18 +792,9 @@ def find_blocker(
                     or distance < nearest_distance
                 ):
 
-                    nearest_distance = (
-                        distance
-                    )
+                    nearest_distance = distance
+                    nearest_blocker = other
 
-                    nearest_blocker = (
-                        other
-                    )
-
-
-        # -------------------------------------------------
-        # 向左
-        # -------------------------------------------------
 
         elif direction == "left":
 
@@ -745,18 +812,9 @@ def find_blocker(
                     or distance < nearest_distance
                 ):
 
-                    nearest_distance = (
-                        distance
-                    )
+                    nearest_distance = distance
+                    nearest_blocker = other
 
-                    nearest_blocker = (
-                        other
-                    )
-
-
-        # -------------------------------------------------
-        # 向下
-        # -------------------------------------------------
 
         elif direction == "down":
 
@@ -774,18 +832,9 @@ def find_blocker(
                     or distance < nearest_distance
                 ):
 
-                    nearest_distance = (
-                        distance
-                    )
+                    nearest_distance = distance
+                    nearest_blocker = other
 
-                    nearest_blocker = (
-                        other
-                    )
-
-
-        # -------------------------------------------------
-        # 向上
-        # -------------------------------------------------
 
         elif direction == "up":
 
@@ -803,32 +852,25 @@ def find_blocker(
                     or distance < nearest_distance
                 ):
 
-                    nearest_distance = (
-                        distance
-                    )
-
-                    nearest_blocker = (
-                        other
-                    )
+                    nearest_distance = distance
+                    nearest_blocker = other
 
 
     return nearest_blocker
 
 
 # =========================================================
-# 18. 初始化箭头数据
+# 15. 初始箭头数据
 # =========================================================
 
 arrows = [
-
     arrow.copy()
-
     for arrow in LEVELS[0]
 ]
 
 
 # =========================================================
-# 19. 主循环
+# 16. 主循环
 # =========================================================
 
 running = True
@@ -844,51 +886,43 @@ while running:
 
 
     # =====================================================
-    # 20. 按钮的位置
+    # 17. 动态控件位置
     # =====================================================
 
     start_button = pygame.Rect(
-        window_width // 2 - 100,
-        window_height // 2 + 60,
-        200,
-        60
+        window_width // 2 - 110,
+        window_height // 2 + 95,
+        220,
+        62
     )
 
 
     restart_button = pygame.Rect(
-        window_width - 150,
-        20,
-        120,
-        45
+        window_width - 165,
+        28,
+        135,
+        46
     )
 
 
     modal_button = pygame.Rect(
-        window_width // 2 - 100,
-        window_height // 2 + 70,
-        200,
-        55
+        window_width // 2 - 105,
+        window_height // 2 + 80,
+        210,
+        58
     )
 
 
     # =====================================================
-    # 21. 事件处理
+    # 18. 事件处理
     # =====================================================
 
     for event in pygame.event.get():
-
-        # -------------------------------------------------
-        # 关闭窗口
-        # -------------------------------------------------
 
         if event.type == pygame.QUIT:
 
             running = False
 
-
-        # -------------------------------------------------
-        # 调整窗口大小
-        # -------------------------------------------------
 
         if event.type == pygame.VIDEORESIZE:
 
@@ -903,18 +937,14 @@ while running:
             update_layout()
 
 
-        # -------------------------------------------------
-        # 鼠标点击
-        # -------------------------------------------------
-
         if event.type == pygame.MOUSEBUTTONDOWN:
 
             mouse_x, mouse_y = event.pos
 
 
-            # =============================================
+            # -------------------------------------------------
             # 开始界面
-            # =============================================
+            # -------------------------------------------------
 
             if game_state == "start":
 
@@ -928,9 +958,9 @@ while running:
                 continue
 
 
-            # =============================================
-            # 游戏失败
-            # =============================================
+            # -------------------------------------------------
+            # Game Over
+            # -------------------------------------------------
 
             if game_state == "game_over":
 
@@ -944,9 +974,9 @@ while running:
                 continue
 
 
-            # =============================================
-            # 当前关卡完成
-            # =============================================
+            # -------------------------------------------------
+            # 关卡完成
+            # -------------------------------------------------
 
             if game_state == "level_complete":
 
@@ -960,9 +990,9 @@ while running:
                 continue
 
 
-            # =============================================
+            # -------------------------------------------------
             # 全部关卡完成
-            # =============================================
+            # -------------------------------------------------
 
             if game_state == "all_clear":
 
@@ -976,17 +1006,14 @@ while running:
                 continue
 
 
-            # =============================================
-            # 正常游戏
-            # =============================================
+            # -------------------------------------------------
+            # 游戏中
+            # -------------------------------------------------
 
             if game_state == "playing":
 
 
-                # -----------------------------------------
                 # Restart
-                # -----------------------------------------
-
                 if restart_button.collidepoint(
                     mouse_x,
                     mouse_y
@@ -997,10 +1024,7 @@ while running:
                     continue
 
 
-                # -----------------------------------------
-                # 动画过程中禁止点击
-                # -----------------------------------------
-
+                # 动画播放时禁止点击
                 if (
                     flying_arrow is not None
                     or collision_arrow is not None
@@ -1009,10 +1033,7 @@ while running:
                     continue
 
 
-                # -----------------------------------------
-                # 判断是否点击棋盘
-                # -----------------------------------------
-
+                # 点击棋盘
                 if (
                     BOARD_X
                     <= mouse_x
@@ -1040,10 +1061,6 @@ while running:
                     )
 
 
-                    # -------------------------------------
-                    # 点击到了箭头
-                    # -------------------------------------
-
                     if clicked_arrow is not None:
 
                         print(
@@ -1057,9 +1074,9 @@ while running:
                         )
 
 
-                        # =================================
-                        # 被挡住
-                        # =================================
+                        # =====================================
+                        # 被阻挡
+                        # =====================================
 
                         if blocker is not None:
 
@@ -1073,10 +1090,6 @@ while running:
                             )
 
 
-                            # -----------------------------
-                            # 扣除失误次数
-                            # -----------------------------
-
                             if mistakes_left > 0:
 
                                 mistakes_left -= 1
@@ -1087,10 +1100,6 @@ while running:
                                 mistakes_left
                             )
 
-
-                            # -----------------------------
-                            # 开始碰撞动画
-                            # -----------------------------
 
                             collision_arrow = (
                                 clicked_arrow
@@ -1109,10 +1118,6 @@ while running:
                                 ]
                             )
 
-
-                            # -----------------------------
-                            # 算箭头与障碍之间有多少格
-                            # -----------------------------
 
                             if direction == "right":
 
@@ -1146,10 +1151,6 @@ while running:
                                 )
 
 
-                            # -----------------------------
-                            # 防止两个箭头完全重叠
-                            # -----------------------------
-
                             safe_distance = int(
                                 CELL_SIZE * 0.62
                             )
@@ -1170,10 +1171,6 @@ while running:
                             )
 
 
-                            # -----------------------------
-                            # 游戏失败
-                            # -----------------------------
-
                             if mistakes_left == 0:
 
                                 game_state = (
@@ -1181,9 +1178,9 @@ while running:
                                 )
 
 
-                        # =================================
-                        # 没有被阻挡
-                        # =================================
+                        # =====================================
+                        # 可以飞出去
+                        # =====================================
 
                         else:
 
@@ -1207,14 +1204,13 @@ while running:
                             ] = 0
 
 
-                            # 从棋盘逻辑数据中删除
                             arrows.remove(
                                 clicked_arrow
                             )
 
 
     # =====================================================
-    # 22. 飞出动画
+    # 19. 更新飞出动画
     # =====================================================
 
     if flying_arrow is not None:
@@ -1225,8 +1221,8 @@ while running:
 
 
         fly_speed = max(
-            4,
-            int(CELL_SIZE * 0.10)
+            5,
+            int(CELL_SIZE * 0.11)
         )
 
 
@@ -1276,7 +1272,6 @@ while running:
         )
 
 
-        # 飞出棋盘后结束动画
         if (
             current_x < BOARD_X
             or current_x > BOARD_X
@@ -1293,7 +1288,7 @@ while running:
 
 
     # =====================================================
-    # 23. 碰撞动画
+    # 20. 更新碰撞动画
     # =====================================================
 
     collision_offset_x = 0
@@ -1304,10 +1299,6 @@ while running:
 
         collision_frame += 1
 
-
-        # -------------------------------------------------
-        # 前半段：向阻挡箭头移动
-        # -------------------------------------------------
 
         if (
             collision_frame
@@ -1323,10 +1314,6 @@ while running:
                 )
             )
 
-
-        # -------------------------------------------------
-        # 后半段：返回
-        # -------------------------------------------------
 
         else:
 
@@ -1352,35 +1339,23 @@ while running:
 
         if direction == "right":
 
-            collision_offset_x = (
-                distance
-            )
+            collision_offset_x = distance
 
 
         elif direction == "left":
 
-            collision_offset_x = (
-                -distance
-            )
+            collision_offset_x = -distance
 
 
         elif direction == "up":
 
-            collision_offset_y = (
-                -distance
-            )
+            collision_offset_y = -distance
 
 
         elif direction == "down":
 
-            collision_offset_y = (
-                distance
-            )
+            collision_offset_y = distance
 
-
-        # -------------------------------------------------
-        # 碰撞动画结束
-        # -------------------------------------------------
 
         if (
             collision_frame
@@ -1394,7 +1369,7 @@ while running:
 
 
     # =====================================================
-    # 24. 判断当前关卡是否完成
+    # 21. 判断关卡完成
     # =====================================================
 
     if (
@@ -1402,10 +1377,6 @@ while running:
         and len(arrows) == 0
         and flying_arrow is None
     ):
-
-        # -------------------------------------------------
-        # 还有下一关
-        # -------------------------------------------------
 
         if (
             current_level
@@ -1423,10 +1394,6 @@ while running:
             )
 
 
-        # -------------------------------------------------
-        # 第三关也完成了
-        # -------------------------------------------------
-
         else:
 
             game_state = (
@@ -1439,34 +1406,63 @@ while running:
 
 
     # =====================================================
-    # 25. 绘制背景
+    # 22. 绘制背景
     # =====================================================
 
     screen.fill(
-        (245, 247, 250)
+        BACKGROUND
     )
 
 
     # =====================================================
-    # 26. 开始界面
+    # 23. 开始界面
     # =====================================================
 
     if game_state == "start":
 
-        title = title_font.render(
-            "One More Arrow",
+        # -------------------------------------------------
+        # 小装饰标题
+        # -------------------------------------------------
+
+        subtitle_top = small_font.render(
+            "PUZZLE GAME",
             True,
-            (30, 30, 35)
+            BLUE
         )
 
-
-        title_rect = title.get_rect(
-            center=(
-                window_width // 2,
-                window_height // 2 - 80
+        subtitle_top_rect = (
+            subtitle_top.get_rect(
+                center=(
+                    window_width // 2,
+                    window_height // 2 - 145
+                )
             )
         )
 
+        screen.blit(
+            subtitle_top,
+            subtitle_top_rect
+        )
+
+
+        # -------------------------------------------------
+        # 主标题
+        # -------------------------------------------------
+
+        title = title_font.render(
+            "One More Arrow",
+            True,
+            TEXT_MAIN
+        )
+
+        title_rect = (
+            title.get_rect(
+                center=(
+                    window_width // 2,
+                    window_height // 2 - 85
+                )
+            )
+        )
 
         screen.blit(
             title,
@@ -1474,20 +1470,24 @@ while running:
         )
 
 
+        # -------------------------------------------------
+        # 说明文字
+        # -------------------------------------------------
+
         tip = info_font.render(
             "Clear every arrow without hitting blockers",
             True,
-            (90, 95, 105)
+            TEXT_SECONDARY
         )
 
-
-        tip_rect = tip.get_rect(
-            center=(
-                window_width // 2,
-                window_height // 2
+        tip_rect = (
+            tip.get_rect(
+                center=(
+                    window_width // 2,
+                    window_height // 2 - 10
+                )
             )
         )
-
 
         screen.blit(
             tip,
@@ -1495,76 +1495,61 @@ while running:
         )
 
 
+        hint = small_font.render(
+            "Choose the right order and escape the board",
+            True,
+            (135, 140, 150)
+        )
+
+        hint_rect = (
+            hint.get_rect(
+                center=(
+                    window_width // 2,
+                    window_height // 2 + 30
+                )
+            )
+        )
+
+        screen.blit(
+            hint,
+            hint_rect
+        )
+
+
         draw_button(
             start_button,
-            "Start Game"
+            "Start Game",
+            accent=True
         )
 
 
     # =====================================================
-    # 27. 游戏画面
+    # 24. 游戏界面
     # =====================================================
 
     else:
 
         # -------------------------------------------------
-        # 当前关卡
+        # 页面标题
         # -------------------------------------------------
 
-        level_text = info_font.render(
-            "Level "
-            + str(current_level + 1)
-            + " / "
-            + str(len(LEVELS)),
+        header_title = big_font.render(
+            "One More Arrow",
             True,
-            (30, 30, 35)
+            TEXT_MAIN
         )
-
 
         screen.blit(
-            level_text,
-            (20, 20)
+            header_title,
+            (
+                28,
+                20
+            )
         )
 
 
         # -------------------------------------------------
-        # 失误次数
-        # -------------------------------------------------
-
-        mistakes_text = info_font.render(
-            "Mistakes: "
-            + str(mistakes_left),
-            True,
-            (30, 30, 35)
-        )
-
-
-        screen.blit(
-            mistakes_text,
-            (20, 55)
-        )
-
-
-        # -------------------------------------------------
-        # 剩余箭头
-        # -------------------------------------------------
-
-        remaining_text = info_font.render(
-            "Remaining: "
-            + str(len(arrows)),
-            True,
-            (30, 30, 35)
-        )
-
-
-        screen.blit(
-            remaining_text,
-            (20, 90)
-        )
-
-
-        # -------------------------------------------------
-        # Restart 按钮
+        # Restart
         # -------------------------------------------------
 
         draw_button(
@@ -1574,7 +1559,116 @@ while running:
 
 
         # =================================================
-        # 棋盘
+        # 三个信息卡片
+        # =================================================
+
+        card_width = 150
+        card_height = 68
+
+        cards_total_width = (
+            card_width * 3
+            + 20 * 2
+        )
+
+        card_start_x = (
+            window_width
+            - cards_total_width
+        ) // 2
+
+        card_y = 100
+
+
+        level_card = pygame.Rect(
+            card_start_x,
+            card_y,
+            card_width,
+            card_height
+        )
+
+
+        mistake_card = pygame.Rect(
+            card_start_x
+            + card_width
+            + 20,
+            card_y,
+            card_width,
+            card_height
+        )
+
+
+        remaining_card = pygame.Rect(
+            card_start_x
+            + (
+                card_width
+                + 20
+            ) * 2,
+            card_y,
+            card_width,
+            card_height
+        )
+
+
+        draw_info_card(
+            level_card,
+            "LEVEL",
+            str(current_level + 1)
+            + " / "
+            + str(len(LEVELS)),
+            BLUE
+        )
+
+
+        draw_info_card(
+            mistake_card,
+            "MISTAKES",
+            str(mistakes_left)
+            + " / "
+            + str(MAX_MISTAKES),
+            RED
+        )
+
+
+        draw_info_card(
+            remaining_card,
+            "REMAINING",
+            str(len(arrows)),
+            GREEN
+        )
+
+
+        # =================================================
+        # 棋盘卡片背景
+        # =================================================
+
+        board_padding = 22
+
+        board_card = pygame.Rect(
+            BOARD_X - board_padding,
+            BOARD_Y - board_padding,
+            COLS * CELL_SIZE
+            + board_padding * 2,
+            ROWS * CELL_SIZE
+            + board_padding * 2
+        )
+
+
+        draw_shadow_rect(
+            board_card,
+            radius=20,
+            shadow_offset=7
+        )
+
+
+        pygame.draw.rect(
+            screen,
+            CARD_BG,
+            board_card,
+            border_radius=20
+        )
+
+
+        # =================================================
+        # 绘制棋盘
         # =================================================
 
         for row in range(ROWS):
@@ -1592,40 +1686,39 @@ while running:
                 )
 
 
-                # 单元格背景
-                pygame.draw.rect(
-                    screen,
-                    (255, 255, 255),
-                    (
-                        x,
-                        y,
-                        CELL_SIZE,
-                        CELL_SIZE
-                    )
+                cell_rect = pygame.Rect(
+                    x,
+                    y,
+                    CELL_SIZE,
+                    CELL_SIZE
                 )
 
 
-                # 单元格边框
                 pygame.draw.rect(
                     screen,
-                    (180, 185, 195),
                     (
-                        x,
-                        y,
-                        CELL_SIZE,
-                        CELL_SIZE
+                        252,
+                        253,
+                        255
                     ),
+                    cell_rect
+                )
+
+
+                pygame.draw.rect(
+                    screen,
+                    GRID_COLOR,
+                    cell_rect,
                     1
                 )
 
 
         # =================================================
-        # 棋盘上的箭头
+        # 绘制箭头
         # =================================================
 
         for arrow in arrows:
 
-            # 当前正在发生碰撞
             if arrow is collision_arrow:
 
                 draw_arrow(
@@ -1635,7 +1728,7 @@ while running:
                     arrow["direction"],
                     collision_offset_x,
                     collision_offset_y,
-                    (220, 40, 40)
+                    RED
                 )
 
 
@@ -1650,7 +1743,7 @@ while running:
 
 
         # =================================================
-        # 正在飞出去的箭头
+        # 飞出动画
         # =================================================
 
         if flying_arrow is not None:
@@ -1666,7 +1759,7 @@ while running:
 
 
         # =================================================
-        # 28. Game Over 弹窗
+        # 25. Game Over 弹窗
         # =================================================
 
         if game_state == "game_over":
@@ -1679,16 +1772,9 @@ while running:
                 pygame.SRCALPHA
             )
 
-
             overlay.fill(
-                (
-                    0,
-                    0,
-                    0,
-                    110
-                )
+                OVERLAY_COLOR
             )
-
 
             screen.blit(
                 overlay,
@@ -1697,12 +1783,11 @@ while running:
 
 
             modal_width = min(
-                430,
+                450,
                 window_width - 40
             )
 
-
-            modal_height = 250
+            modal_height = 280
 
 
             modal_rect = pygame.Rect(
@@ -1717,43 +1802,99 @@ while running:
             )
 
 
+            draw_shadow_rect(
+                modal_rect,
+                radius=22,
+                shadow_offset=8
+            )
+
+
             pygame.draw.rect(
                 screen,
-                (255, 255, 255),
+                CARD_BG,
                 modal_rect,
-                border_radius=18
+                border_radius=22
             )
 
 
-            text = big_font.render(
-                "Game Over",
+            status_text = small_font.render(
+                "TRY AGAIN",
                 True,
-                (210, 45, 45)
+                RED
             )
 
 
-            text_rect = text.get_rect(
-                center=(
-                    window_width // 2,
-                    window_height // 2 - 45
+            status_rect = (
+                status_text.get_rect(
+                    center=(
+                        window_width // 2,
+                        window_height // 2 - 85
+                    )
                 )
             )
 
 
             screen.blit(
-                text,
-                text_rect
+                status_text,
+                status_rect
+            )
+
+
+            title = big_font.render(
+                "Game Over",
+                True,
+                TEXT_MAIN
+            )
+
+
+            title_rect = (
+                title.get_rect(
+                    center=(
+                        window_width // 2,
+                        window_height // 2 - 35
+                    )
+                )
+            )
+
+
+            screen.blit(
+                title,
+                title_rect
+            )
+
+
+            message = small_font.render(
+                "You used all available mistakes.",
+                True,
+                TEXT_SECONDARY
+            )
+
+
+            message_rect = (
+                message.get_rect(
+                    center=(
+                        window_width // 2,
+                        window_height // 2 + 15
+                    )
+                )
+            )
+
+
+            screen.blit(
+                message,
+                message_rect
             )
 
 
             draw_button(
                 modal_button,
-                "Restart"
+                "Restart",
+                accent=True
             )
 
 
         # =================================================
-        # 29. Level Complete 弹窗
+        # 26. Level Complete
         # =================================================
 
         elif game_state == "level_complete":
@@ -1766,16 +1907,9 @@ while running:
                 pygame.SRCALPHA
             )
 
-
             overlay.fill(
-                (
-                    0,
-                    0,
-                    0,
-                    110
-                )
+                OVERLAY_COLOR
             )
-
 
             screen.blit(
                 overlay,
@@ -1788,8 +1922,7 @@ while running:
                 window_width - 40
             )
 
-
-            modal_height = 250
+            modal_height = 280
 
 
             modal_rect = pygame.Rect(
@@ -1804,43 +1937,99 @@ while running:
             )
 
 
+            draw_shadow_rect(
+                modal_rect,
+                radius=22,
+                shadow_offset=8
+            )
+
+
             pygame.draw.rect(
                 screen,
-                (255, 255, 255),
+                CARD_BG,
                 modal_rect,
-                border_radius=18
+                border_radius=22
             )
 
 
-            text = big_font.render(
-                "Level Complete!",
+            status_text = small_font.render(
+                "SUCCESS",
                 True,
-                (35, 160, 85)
+                GREEN
             )
 
 
-            text_rect = text.get_rect(
-                center=(
-                    window_width // 2,
-                    window_height // 2 - 45
+            status_rect = (
+                status_text.get_rect(
+                    center=(
+                        window_width // 2,
+                        window_height // 2 - 85
+                    )
                 )
             )
 
 
             screen.blit(
-                text,
-                text_rect
+                status_text,
+                status_rect
+            )
+
+
+            title = big_font.render(
+                "Level Complete!",
+                True,
+                TEXT_MAIN
+            )
+
+
+            title_rect = (
+                title.get_rect(
+                    center=(
+                        window_width // 2,
+                        window_height // 2 - 35
+                    )
+                )
+            )
+
+
+            screen.blit(
+                title,
+                title_rect
+            )
+
+
+            message = small_font.render(
+                "Great job. The next puzzle is waiting.",
+                True,
+                TEXT_SECONDARY
+            )
+
+
+            message_rect = (
+                message.get_rect(
+                    center=(
+                        window_width // 2,
+                        window_height // 2 + 15
+                    )
+                )
+            )
+
+
+            screen.blit(
+                message,
+                message_rect
             )
 
 
             draw_button(
                 modal_button,
-                "Next Level"
+                "Next Level",
+                accent=True
             )
 
 
         # =================================================
-        # 30. 全部关卡完成
+        # 27. 全部通关
         # =================================================
 
         elif game_state == "all_clear":
@@ -1853,16 +2042,9 @@ while running:
                 pygame.SRCALPHA
             )
 
-
             overlay.fill(
-                (
-                    0,
-                    0,
-                    0,
-                    115
-                )
+                OVERLAY_COLOR
             )
-
 
             screen.blit(
                 overlay,
@@ -1875,8 +2057,7 @@ while running:
                 window_width - 40
             )
 
-
-            modal_height = 270
+            modal_height = 300
 
 
             modal_rect = pygame.Rect(
@@ -1891,18 +2072,48 @@ while running:
             )
 
 
+            draw_shadow_rect(
+                modal_rect,
+                radius=22,
+                shadow_offset=8
+            )
+
+
             pygame.draw.rect(
                 screen,
-                (255, 255, 255),
+                CARD_BG,
                 modal_rect,
-                border_radius=18
+                border_radius=22
+            )
+
+
+            status_text = small_font.render(
+                "ALL CLEAR",
+                True,
+                GREEN
+            )
+
+
+            status_rect = (
+                status_text.get_rect(
+                    center=(
+                        window_width // 2,
+                        window_height // 2 - 100
+                    )
+                )
+            )
+
+
+            screen.blit(
+                status_text,
+                status_rect
             )
 
 
             title = big_font.render(
                 "Congratulations!",
                 True,
-                (35, 150, 85)
+                TEXT_MAIN
             )
 
 
@@ -1910,7 +2121,7 @@ while running:
                 title.get_rect(
                     center=(
                         window_width // 2,
-                        window_height // 2 - 65
+                        window_height // 2 - 45
                     )
                 )
             )
@@ -1922,37 +2133,38 @@ while running:
             )
 
 
-            subtitle = info_font.render(
-                "All Levels Clear!",
+            message = info_font.render(
+                "You cleared all three levels.",
                 True,
-                (70, 75, 85)
+                TEXT_SECONDARY
             )
 
 
-            subtitle_rect = (
-                subtitle.get_rect(
+            message_rect = (
+                message.get_rect(
                     center=(
                         window_width // 2,
-                        window_height // 2
+                        window_height // 2 + 10
                     )
                 )
             )
 
 
             screen.blit(
-                subtitle,
-                subtitle_rect
+                message,
+                message_rect
             )
 
 
             draw_button(
                 modal_button,
-                "Play Again"
+                "Play Again",
+                accent=True
             )
 
 
     # =====================================================
-    # 31. 更新屏幕
+    # 28. 刷新屏幕
     # =====================================================
 
     pygame.display.flip()
@@ -1961,7 +2173,7 @@ while running:
 
 
 # =========================================================
-# 32. 退出 pygame
+# 29. 退出
 # =========================================================
 
 pygame.quit()

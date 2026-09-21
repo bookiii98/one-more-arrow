@@ -25,6 +25,10 @@ class GameUI:
     def get_font(self, size, bold=False):
         key = (max(13, int(size)), bold)
         if key not in self.fonts:
+            if FONT_PATH is None:
+                raise RuntimeError(
+                    'No Chinese font found. Install a Chinese font or set '
+                    'ONE_MORE_ARROW_FONT to a .ttf/.ttc/.otf file; see README.md.')
             font = pygame.font.Font(FONT_PATH, key[0])
             font.set_bold(bold)
             self.fonts[key] = font

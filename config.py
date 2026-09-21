@@ -1,10 +1,36 @@
 """窗口、字体、颜色与统一尺寸规范。"""
 import os
 
-FONT_CANDIDATES = ['/System/Library/Fonts/Hiragino Sans GB.ttc',
- '/System/Library/Fonts/STHeiti Medium.ttc',
- '/System/Library/Fonts/STHeiti Light.ttc',
- '/System/Library/Fonts/Supplemental/Songti.ttc']
+def font_candidates():
+    """显式字体优先，其次检查各系统常见中文字体位置。"""
+    windows = os.environ.get('WINDIR') or os.environ.get('SystemRoot') or 'C:\\Windows'
+    local = os.environ.get('LOCALAPPDATA', '')
+    candidates = [os.environ.get('ONE_MORE_ARROW_FONT', '')]
+    candidates += [os.path.join(windows, 'Fonts', name)
+                   for name in ('msyh.ttc', 'msyh.ttf', 'simhei.ttf', 'simsun.ttc')]
+    if local:
+        candidates += [os.path.join(local, 'Microsoft', 'Windows', 'Fonts', name)
+                       for name in ('msyh.ttc', 'simhei.ttf', 'NotoSansCJKsc-Regular.otf')]
+    candidates += [
+        '/System/Library/Fonts/Hiragino Sans GB.ttc',
+        '/System/Library/Fonts/STHeiti Medium.ttc',
+        '/System/Library/Fonts/STHeiti Light.ttc',
+        '/System/Library/Fonts/Supplemental/Songti.ttc',
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+        '/usr/share/fonts/opentype/noto/NotoSansCJKsc-Regular.otf',
+        '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
+        '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+        os.path.expanduser('~/.local/share/fonts/NotoSansCJKsc-Regular.otf'),
+    ]
+    return [path for path in candidates if path]
+
+
+def find_font(candidates=None):
+    return next((path for path in (font_candidates() if candidates is None else candidates)
+                 if os.path.isfile(path)), None)
+
+
+FONT_CANDIDATES = font_candidates()
 BACKGROUND_TOP = (242, 247, 255)
 BACKGROUND_BOTTOM = (232, 240, 252)
 CARD_BG = (255, 255, 255)
@@ -49,4 +75,4 @@ UI = {'body_size': 16,
  'stat_width': 135,
  'title_size': 32}
 
-FONT_PATH = next((path for path in FONT_CANDIDATES if os.path.exists(path)), None)
+FONT_PATH = find_font(FONT_CANDIDATES)

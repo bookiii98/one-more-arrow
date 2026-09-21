@@ -37,24 +37,79 @@
 | 图形与音频库 | Pygame 2.6.1 |
 | AIGC 工具 | ChatGPT、Codex |
 
-当前中文字体配置优先使用 macOS 自带的 `Hiragino Sans GB` 等字体。Windows 或 Linux 用户需要在 `config.py` 的 `FONT_CANDIDATES` 中加入本机实际存在的中文字体路径，否则可能出现中文方框。其他平台尚未完成完整验证。
+程序会自动查找 macOS 的冬青黑体、Windows 的微软雅黑／黑体／宋体，以及常见 Linux 中文字体路径。macOS 已完成运行与回归测试；Windows 字体路径通过模拟测试，尚未在真实 Windows 电脑上完成整套验证。
 
-## 安装和运行
+## 下载项目
 
-在具有桌面图形环境的终端中执行：
+无需安装 Git：点击仓库右上方 **Code → Download ZIP**，然后解压。必须先解压整个文件夹，不能直接在压缩包中打开 `main.py`。
+
+也可以使用 Git 下载：
 
 ```bash
 git clone https://github.com/bookiii98/one-more-arrow.git
-cd one-more-arrow
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.txt
-python3 main.py
 ```
 
-以上命令适用于 macOS。Windows 上可使用 `python` 代替 `python3`，并通过 `.venv\Scripts\activate` 激活虚拟环境；中文字体需按上文配置。
+ZIP 解压后的文件夹通常叫 `one-more-arrow-main`，Git 下载的文件夹叫 `one-more-arrow`。以下命令均在包含 `main.py` 和 `requirements.txt` 的目录中运行。
 
-项目不需要 API Key、网络服务或额外下载美术、音效素材。游戏需要桌面环境；无窗口模式仅用于自动测试。
+## 安装和运行
+
+### macOS
+
+如果通过 ZIP 下载并解压在“下载”文件夹中：
+
+```bash
+cd ~/Downloads/one-more-arrow-main
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python main.py
+```
+
+若文件夹放在其他位置，先把 `cd` 后面的路径替换为实际路径。
+
+### Windows（PowerShell）
+
+先安装 Python（建议使用 Python 3.12），安装时勾选 **Add python.exe to PATH**。打开解压后的项目文件夹，在资源管理器地址栏输入 `powershell` 并回车，然后依次执行：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
+```
+
+如果提示找不到 `python`，确认 Python 已安装并重新打开终端；也可以用 `py -3 -m venv .venv` 创建环境。后续两行仍保持不变。
+
+以上命令直接使用虚拟环境中的 Python，不需要运行激活脚本，也不需要修改 PowerShell 执行策略。以后再次启动，只需进入项目目录执行最后一行。
+
+### 中文字体配置
+
+一般的中文 Windows 和 macOS 系统无需修改代码。Windows 字体目录通过 `WINDIR` 自动定位，不要求系统必须安装在 C 盘。
+
+如果系统缺少上述字体，程序会在终端提示 `No Chinese font found`。请安装支持简体中文的字体，或通过环境变量指定本机的字体文件路径：
+
+Windows PowerShell 示例（请替换为实际存在的路径）：
+
+```powershell
+$env:ONE_MORE_ARROW_FONT = 'C:\Windows\Fonts\msyh.ttc'
+.\.venv\Scripts\python.exe main.py
+```
+
+macOS／Linux 示例：
+
+```bash
+export ONE_MORE_ARROW_FONT='/实际路径/中文字体.ttf'
+.venv/bin/python main.py
+```
+
+支持 `.ttf`、`.ttc`、`.otf` 字体文件；文件本身必须包含中文字符。不要把 macOS 的系统字体路径直接复制到 Windows 使用。
+
+### 常见运行问题
+
+- **提示缺少 pygame**：用上面虚拟环境中的 Python 再执行安装依赖命令，确保安装和运行使用同一个环境。
+- **窗口打不开或出现报错**：从终端启动，保留报错内容便于定位，不要只双击 `.py` 文件。
+- **保存失败**：把项目解压到有写入权限的目录，例如“下载”或“文档”，不要放在系统受保护的安装目录。
+- **没有音频设备**：游戏会自动禁用音效，不影响基础玩法。
+
+游戏不需要 API Key、网络服务或额外下载美术、音效素材。首次安装依赖需要网络。当前提供 Python 源码版，尚未打包成独立可执行程序。
 
 ## 操作说明
 
@@ -109,6 +164,7 @@ one-more-arrow/
 ├── ui.py                    # 界面布局与绘制
 ├── progress.py              # 存档校验、保存和恢复
 ├── audio.py                 # 本地合成和播放短音效
+├── test_fonts.py            # 跨平台字体查找与中文渲染
 ├── test_game.py             # 基础玩法和完整通关流程
 ├── test_basic_levels.py     # 单格基础关卡与兼容处理
 ├── test_progress.py         # 保存进度与异常处理
@@ -127,18 +183,30 @@ one-more-arrow/
 
 ## 测试
 
-激活虚拟环境后，在项目根目录执行：
+在项目根目录执行以下命令。环境变量只对当前终端会话生效，测试后恢复，避免随后运行游戏时仍处于无窗口模式。
+
+macOS：
 
 ```bash
-SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 -m unittest -v
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy .venv/bin/python -m unittest -v
 ```
 
-当前版本有 22 项自动化测试，已通过：
+Windows PowerShell：
 
-```text
-Ran 22 tests
-OK
+```powershell
+$oldVideo = $env:SDL_VIDEODRIVER
+$oldAudio = $env:SDL_AUDIODRIVER
+try {
+    $env:SDL_VIDEODRIVER = 'dummy'
+    $env:SDL_AUDIODRIVER = 'dummy'
+    .\.venv\Scripts\python.exe -m unittest -v
+} finally {
+    $env:SDL_VIDEODRIVER = $oldVideo
+    $env:SDL_AUDIODRIVER = $oldAudio
+}
 ```
+
+当前共 25 项自动测试，在 macOS 无窗口环境运行通过。测试套件包含游戏功能与跨平台字体查找检查。Windows 路径测试使用临时目录模拟，不等同于真实 Windows 系统验收。
 
 测试覆盖四方向路径判断、多格点击、十二关连续通关、碰撞失败、重新开始、单页选关、窗口缩放、撤销、存档兼容和音效设置等。无窗口及模拟音频模式用于验证逻辑，不会打开可玩的窗口或播放实际声音。
 
